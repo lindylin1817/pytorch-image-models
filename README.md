@@ -1,3 +1,32 @@
+# My experience for using this package
+
+- [How to use my own dataset](#self-dataset)
+
+## self-dataset
+You can prepare your own dataset to put into this package for training. Here are some format for different purpose.
+
+* Image classification
+
+Dataset for image classification example: Let's take the cat_dog 2-category classification as example. You can put the root folder, training folder and validation folder as following. 
+
+root folder : ./dataset
+
+training folder: ./dataset/train
+
+validataion folder: ./dataset/validation
+
+Note: in the train.py file, it will use "train" and "validation" as the default split name for training dataset and validation dataset.
+To put the cat and dog images into folder like following way.
+
+Put all the cat images under folder ./dataset/train/cat/
+
+Put all the dog images under folder ./dataset/train/dog/
+
+And use the same way to put images under folder ./dataset/validation. 
+The parser will automatically generate a class_to_idx dictionary {'dog':0, 'cat':1, ...}. The parser can be queried with parser[index], and then it will return a result like ('./dataset/train/dog/xxx.jpg', 0)
+
+
+
 # PyTorch Image Models
 - [Sponsors](#sponsors)
 - [What's New](#whats-new)

@@ -1,8 +1,9 @@
 # My experience for using this package
 
 - [How to use my own dataset](#self-dataset)
-
-## self-dataset
+- [Command line to start training](#start-training)
+- [Command line to start inference](#start-inference)
+## How to use my own dataset
 You can prepare your own dataset to put into this package for training. Here are some format for different purpose.
 
 * Image classification
@@ -24,6 +25,21 @@ Put all the dog images under folder ./dataset/train/dog/
 
 And use the same way to put images under folder ./dataset/validation. 
 The parser will automatically generate a class_to_idx dictionary {'dog':0, 'cat':1, ...}. The parser can be queried with parser[index], and then it will return a result like ('./dataset/train/dog/xxx.jpg', 0)
+
+##Command line to start training
+Following is the example command line to start training a Rexnet50 model with cat_dog dataset. 
+We set the batch_size as 64.
+```
+python3 train.py ../cat_dog/ --lr 0.1 --warmup-epochs 5 --epochs 160 --weight-decay 1e-4 --sched cosine --reprob 0.4 --remode pixel -b 64 
+```
+##Command line to start inference
+You can use any image folder replacing the "../cat_dog/validation" below. 
+We use the trained model file (checkpoint file) "../timm_output/20211211-210542-resnet50-224/model_best.pth.tar" to do the training. 
+By default, the inference.py has set the model type as Resnet50, but you can use "--model" to change it in command line. 
+```
+python3 inference.py ../cat_dog/validation/ --checkpoint ../timm_output/20211211-210542-resnet50-224/model_best.pth.tar
+```
+
 
 
 

@@ -111,9 +111,9 @@ parser.add_argument('--std', type=float, nargs='+', default=None, metavar='STD',
                     help='Override std deviation of of dataset')
 parser.add_argument('--interpolation', default='', type=str, metavar='NAME',
                     help='Image resize interpolation type (overrides model)')
-parser.add_argument('-b', '--batch-size', type=int, default=128, metavar='N',
+parser.add_argument('-b', '--batch-size', type=int, default=8, metavar='N',
                     help='input batch size for training (default: 128)')
-parser.add_argument('-vb', '--validation-batch-size', type=int, default=None, metavar='N',
+parser.add_argument('-vb', '--validation-batch-size', type=int, default=4, metavar='N',
                     help='validation batch size override (default: None)')
 
 # Optimizer parameters
@@ -366,6 +366,7 @@ def main():
 
     random_seed(args.seed, args.rank)
 
+    print(args.num_classes)
     model = create_model(
         args.model,
         pretrained=args.pretrained,
@@ -488,6 +489,8 @@ def main():
     if args.local_rank == 0:
         _logger.info('Scheduled epochs: {}'.format(num_epochs))
 
+    print(args.train_split)
+    print(args.val_split)
     # create the train and eval datasets
     dataset_train = create_dataset(
         args.dataset, root=args.data_dir, split=args.train_split, is_training=True,
@@ -495,6 +498,7 @@ def main():
         download=args.dataset_download,
         batch_size=args.batch_size,
         repeats=args.epoch_repeats)
+    print("To prepare dataset for validation\n")
     dataset_eval = create_dataset(
         args.dataset, root=args.data_dir, split=args.val_split, is_training=False,
         class_map=args.class_map,
@@ -517,6 +521,7 @@ def main():
             mixup_fn = Mixup(**mixup_args)
 
     # wrap dataset in AugMix helper
+
     if num_aug_splits > 1:
         dataset_train = AugMixDataset(dataset_train, num_splits=num_aug_splits)
 
@@ -604,7 +609,7 @@ def main():
                 safe_model_name(args.model),
                 str(data_config['input_size'][-1])
             ])
-        output_dir = get_outdir(args.output if args.output else './output/train', exp_name)
+        output_dir = get_outdir(args.output if args.output else './timm_output/train', exp_name)
         decreasing = True if eval_metric == 'loss' else False
         saver = CheckpointSaver(
             model=model, optimizer=optimizer, args=args, model_ema=model_ema, amp_scaler=loss_scaler,
@@ -614,6 +619,7 @@ def main():
 
     try:
         for epoch in range(start_epoch, num_epochs):
+            print("num_epochs is " + str(num_epochs))
             if args.distributed and hasattr(loader_train.sampler, 'set_epoch'):
                 loader_train.sampler.set_epoch(epoch)
 
@@ -626,7 +632,7 @@ def main():
                 if args.local_rank == 0:
                     _logger.info("Distributing BatchNorm running means and vars")
                 distribute_bn(model, args.world_size, args.dist_bn == 'reduce')
-
+            print("to go into validate()")
             eval_metrics = validate(model, loader_eval, validate_loss_fn, args, amp_autocast=amp_autocast)
 
             if model_ema is not None and not args.model_ema_force_cpu:
@@ -774,8 +780,13 @@ def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix='')
 
     end = time.time()
     last_idx = len(loader) - 1
+    print("last_idx = " + str(last_idx))
+    print(loader)
+    i = 0
+    print("start validation")
     with torch.no_grad():
         for batch_idx, (input, target) in enumerate(loader):
+            i = i + 1
             last_batch = batch_idx == last_idx
             if not args.prefetcher:
                 input = input.cuda()
@@ -795,7 +806,7 @@ def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix='')
                 target = target[0:target.size(0):reduce_factor]
 
             loss = loss_fn(output, target)
-            acc1, acc5 = accuracy(output, target, topk=(1, 5))
+            acc1, acc5 = accuracy(output, target, topk=(1, 1))
 
             if args.distributed:
                 reduced_loss = reduce_tensor(loss.data, args.world_size)
@@ -813,6 +824,7 @@ def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix='')
             batch_time_m.update(time.time() - end)
             end = time.time()
             if args.local_rank == 0 and (last_batch or batch_idx % args.log_interval == 0):
+                print("There are " + str(i) + " batches in this round. ")
                 log_name = 'Test' + log_suffix
                 _logger.info(
                     '{0}: [{1:>4d}/{2}]  '
@@ -822,6 +834,7 @@ def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix='')
                     'Acc@5: {top5.val:>7.4f} ({top5.avg:>7.4f})'.format(
                         log_name, batch_idx, last_idx, batch_time=batch_time_m,
                         loss=losses_m, top1=top1_m, top5=top5_m))
+                i = 0
 
     metrics = OrderedDict([('loss', losses_m.avg), ('top1', top1_m.avg), ('top5', top5_m.avg)])
 

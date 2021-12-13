@@ -366,10 +366,11 @@ class Bottleneck(nn.Module):
 
         width = int(math.floor(planes * (base_width / 64)) * cardinality)
         first_planes = width // reduce_first
+        print(" --------- resnet.py in Bottleneck(): width =" + str(width) + " first_planes =" +
+              str(first_planes))
         outplanes = planes * self.expansion
         first_dilation = first_dilation or dilation
         use_aa = aa_layer is not None and (stride == 2 or first_dilation != dilation)
-
         self.conv1 = nn.Conv2d(inplanes, first_planes, kernel_size=1, bias=False)
         self.bn1 = norm_layer(first_planes)
         self.act1 = act_layer(inplace=True)
@@ -480,6 +481,7 @@ def make_blocks(
     net_stride = 4
     dilation = prev_dilation = 1
     for stage_idx, (planes, num_blocks, db) in enumerate(zip(channels, block_repeats, drop_blocks(drop_block_rate))):
+        print("------------- resnet.py make_blocks in stage " + str(stage_idx))
         stage_name = f'layer{stage_idx + 1}'  # never liked this name, but weight compat requires it
         stride = 1 if stage_idx == 0 else 2
         if net_stride >= output_stride:
@@ -489,6 +491,7 @@ def make_blocks(
             net_stride *= stride
 
         downsample = None
+        print("--------- resnet.py: inplanes = " + str(inplanes))
         if stride != 1 or inplanes != planes * block_fn.expansion:
             down_kwargs = dict(
                 in_channels=inplanes, out_channels=planes * block_fn.expansion, kernel_size=down_kernel_size,
@@ -497,7 +500,8 @@ def make_blocks(
 
         block_kwargs = dict(reduce_first=reduce_first, dilation=dilation, drop_block=db, **kwargs)
         blocks = []
-        for block_idx in range(num_blocks):
+        print("------- resnet.py: num_blocks = " + str(num_blocks))
+        for block_idx in range(num_blocks): # To generate bottleneck blocks in each layer
             downsample = downsample if block_idx == 0 else None
             stride = stride if block_idx == 0 else 1
             block_dpr = drop_path_rate * net_block_idx / (net_num_blocks - 1)  # stochastic depth linear decay rule
@@ -507,7 +511,8 @@ def make_blocks(
             prev_dilation = dilation
             inplanes = planes * block_fn.expansion
             net_block_idx += 1
-
+        print("--------- resnet.py: later inplanes = " + str(inplanes))
+        print("--------- resnet.py: net_stride = " + str(net_stride))
         stages.append((stage_name, nn.Sequential(*blocks)))
         feature_info.append(dict(num_chs=inplanes, reduction=net_stride, module=stage_name))
 
@@ -589,6 +594,7 @@ class ResNet(nn.Module):
                  output_stride=32, block_reduce_first=1, down_kernel_size=1, avg_down=False,
                  act_layer=nn.ReLU, norm_layer=nn.BatchNorm2d, aa_layer=None, drop_rate=0.0, drop_path_rate=0.,
                  drop_block_rate=0., global_pool='avg', zero_init_last_bn=True, block_args=None):
+        print(" ---------- resnet.py: in ResNet() __init__()")
         block_args = block_args or dict()
         assert output_stride in (8, 16, 32)
         self.num_classes = num_classes
@@ -611,11 +617,14 @@ class ResNet(nn.Module):
                 act_layer(inplace=True),
                 nn.Conv2d(stem_chs[1], inplanes, 3, stride=1, padding=1, bias=False)])
         else:
+            #Our default cases go into this branch
+            # This is to construct the stage_0 of Resnet50
+            print("-------resnet.py: Conv2d() in_chans = " + str(in_chans) + " inplanes=" + str(inplanes))
             self.conv1 = nn.Conv2d(in_chans, inplanes, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = norm_layer(inplanes)
-        self.act1 = act_layer(inplace=True)
+        self.act1 = act_layer(inplace=True) # = nn.ReLU
         self.feature_info = [dict(num_chs=inplanes, reduction=2, module='act1')]
-
+        print("-----------resnet.py: feature_info = " + str(self.feature_info))
         # Stem Pooling
         if replace_stem_pool:
             self.maxpool = nn.Sequential(*filter(None, [
@@ -630,20 +639,25 @@ class ResNet(nn.Module):
                     nn.MaxPool2d(kernel_size=3, stride=1, padding=1),
                     aa_layer(channels=inplanes, stride=2)])
             else:
+                #Our default cases go into this branch
                 self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
-        # Feature Blocks
+        # Feature Blocks --- for stage 1, 2, 3, 4 in Resnet 50
         channels = [64, 128, 256, 512]
         stage_modules, stage_feature_info = make_blocks(
             block, channels, layers, inplanes, cardinality=cardinality, base_width=base_width,
             output_stride=output_stride, reduce_first=block_reduce_first, avg_down=avg_down,
             down_kernel_size=down_kernel_size, act_layer=act_layer, norm_layer=norm_layer, aa_layer=aa_layer,
             drop_block_rate=drop_block_rate, drop_path_rate=drop_path_rate, **block_args)
+        i = 0
         for stage in stage_modules:
+            i = i + 1
             self.add_module(*stage)  # layer1, layer2, etc
+        print(" ------ in resnet.py: added " + str(i) + " stages")
         self.feature_info.extend(stage_feature_info)
 
         # Head (Pooling and Classifier)
+        print(" ---------- in resnet.py: block.expansion = " + str(block.expansion))
         self.num_features = 512 * block.expansion
         self.global_pool, self.fc = create_classifier(self.num_features, self.num_classes, pool_type=global_pool)
 
@@ -690,6 +704,8 @@ class ResNet(nn.Module):
 
 
 def _create_resnet(variant, pretrained=False, **kwargs):
+    print("-------in _create_resnet")
+    print(variant)
     return build_model_with_cfg(
         ResNet, variant, pretrained,
         default_cfg=default_cfgs[variant],
@@ -759,7 +775,10 @@ def resnet26d(pretrained=False, **kwargs):
 def resnet50(pretrained=False, **kwargs):
     """Constructs a ResNet-50 model.
     """
+    # Here the layers[3, 4, 6, 3] is the Bottleneck layers number within stage 1 ~stage 4 of ResNet50
     model_args = dict(block=Bottleneck, layers=[3, 4, 6, 3],  **kwargs)
+    print(" ----------- resnet.py: in resnet50(): model_args is ")
+    print(model_args)
     return _create_resnet('resnet50', pretrained, **model_args)
 
 

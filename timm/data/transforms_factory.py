@@ -68,6 +68,7 @@ def transforms_imagenet_train(
     """
     scale = tuple(scale or (0.08, 1.0))  # default imagenet scale range
     ratio = tuple(ratio or (3./4., 4./3.))  # default imagenet ratio range
+    print("image size is " + str(img_size))
     primary_tfl = [
         RandomResizedCropAndInterpolation(img_size, scale=scale, ratio=ratio, interpolation=interpolation)]
     if hflip > 0.:
@@ -198,6 +199,7 @@ def create_transform(
             is_training=is_training, size=img_size, interpolation=interpolation)
     else:
         if is_training and no_aug:
+            print("11111111111")
             assert not separate, "Cannot perform split augmentation with no_aug"
             transform = transforms_noaug_train(
                 img_size,
@@ -232,5 +234,6 @@ def create_transform(
                 mean=mean,
                 std=std,
                 crop_pct=crop_pct)
+    print("img_size in trnasform_factory.py is " + str(img_size))
 
     return transform

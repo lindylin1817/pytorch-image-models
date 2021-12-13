@@ -19,7 +19,7 @@ _model_default_cfgs = dict()  # central repo for model default_cfgs
 
 
 def register_model(fn):
-    # lookup containing module
+    # lookup containing module    
     mod = sys.modules[fn.__module__]
     module_name_split = fn.__module__.split('.')
     module_name = module_name_split[-1] if len(module_name_split) else ''

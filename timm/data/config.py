@@ -31,6 +31,7 @@ def resolve_data_config(args, default_cfg={}, model=None, use_test_size=False, v
         elif 'input_size' in default_cfg:
             input_size = default_cfg['input_size']
     new_config['input_size'] = input_size
+    print("input_size = " + str(input_size))
 
     # resolve interpolation method
     new_config['interpolation'] = 'bicubic'

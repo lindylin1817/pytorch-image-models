@@ -2,6 +2,7 @@ import os
 
 
 def load_class_map(map_or_filename, root=''):
+    print("to load_class_map")
     if isinstance(map_or_filename, dict):
         assert dict, 'class_map dict must be non-empty'
         return map_or_filename

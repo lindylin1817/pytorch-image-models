@@ -38,6 +38,7 @@ class ImageDataset(data.Dataset):
 
     def __getitem__(self, index):
         img, target = self.parser[index]
+#        print(self.parser[index])
         try:
             img = img.read() if self.load_bytes else Image.open(img).convert('RGB')
         except Exception as e:

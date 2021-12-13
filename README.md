@@ -1,8 +1,10 @@
 # My experience for using this package
 
-- [How to use my own dataset](#self-dataset)
+- [How to use my own dataset](#How to use my own dataset)
 - [Command line to start training](#start-training)
 - [Command line to start inference](#start-inference)
+- [How to change the input image size for Resnet50](#change-resnet50)
+
 ## How to use my own dataset
 You can prepare your own dataset to put into this package for training. Here are some format for different purpose.
 
@@ -39,6 +41,11 @@ By default, the inference.py has set the model type as Resnet50, but you can use
 ```
 python3 inference.py ../cat_dog/validation/ --checkpoint ../timm_output/20211211-210542-resnet50-224/model_best.pth.tar
 ```
+
+##How to change the input image size for Resnet50
+The default image input size (or will be resized to ) is 224*224 pixels. This size will be too samll
+for lots of classification cases requiring higher resolution. Here I would like to share the experience on how to 
+change the configuration for a bigger size. 
 
 
 

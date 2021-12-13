@@ -113,6 +113,7 @@ parser.add_argument('--valid-labels', default='', type=str, metavar='FILENAME',
 
 
 def validate(args):
+    print("In this validate")
     # might as well try to validate something
     args.pretrained = args.pretrained or not args.checkpoint
     args.prefetcher = not args.no_prefetcher
@@ -218,6 +219,7 @@ def validate(args):
             input = input.contiguous(memory_format=torch.channels_last)
         model(input)
         end = time.time()
+        print("=============")
         for batch_idx, (input, target) in enumerate(loader):
             if args.no_prefetcher:
                 target = target.cuda()

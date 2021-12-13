@@ -21,12 +21,15 @@ def _create_pool(num_features, num_classes, pool_type='avg', use_conv=False):
 
 
 def _create_fc(num_features, num_classes, use_conv=False):
+    print("------- classifier.py: num_classes = " + str(num_classes))
     if num_classes <= 0:
         fc = nn.Identity()  # pass-through (no classifier)
     elif use_conv:
         fc = nn.Conv2d(num_features, num_classes, 1, bias=True)
     else:
+        # Default case, we will run into this branch
         # NOTE: using my Linear wrapper that fixes AMP + torchscript casting issue
+        print(" ---------- classifier.py: num_features = " + str(num_features))
         fc = Linear(num_features, num_classes, bias=True)
     return fc
 

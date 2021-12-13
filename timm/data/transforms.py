@@ -99,6 +99,7 @@ class RandomResizedCropAndInterpolation:
 
     def __init__(self, size, scale=(0.08, 1.0), ratio=(3. / 4., 4. / 3.),
                  interpolation='bilinear'):
+        print("in RandomResizedCropAndInterpolation __init__")
         if isinstance(size, (list, tuple)):
             self.size = tuple(size)
         else:
@@ -154,6 +155,7 @@ class RandomResizedCropAndInterpolation:
             h = img.size[1]
         i = (img.size[1] - h) // 2
         j = (img.size[0] - w) // 2
+        print("i = " + str(i) + " j = " + str(j) + " h = " + str(h) + " w = " + str(w))
         return i, j, h, w
 
     def __call__(self, img):

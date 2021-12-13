@@ -450,15 +450,23 @@ def build_model_with_cfg(
             feature_cfg['out_indices'] = kwargs.pop('out_indices')
 
     # Build the model
+    print(" ------- helpers.py: in build_model_with_cfg(), model_cfg =")
+    print(model_cfg)
+
     model = model_cls(**kwargs) if model_cfg is None else model_cls(cfg=model_cfg, **kwargs)
     model.default_cfg = default_cfg
+    print("------in helpers.py model.default_cfg is : ")
+    print(model.default_cfg)
     
     if pruned:
+        #We will not go into this branch
         model = adapt_model_from_file(model, variant)
 
     # For classification models, check class attr, then kwargs, then default to 1k, otherwise 0 for feats
     num_classes_pretrained = 0 if features else getattr(model, 'num_classes', kwargs.get('num_classes', 1000))
     if pretrained:
+        # We will not go into this branch
+        print("-------in helpers.py in pretrained")
         if pretrained_custom_load:
             load_custom_pretrained(model)
         else:
@@ -471,6 +479,7 @@ def build_model_with_cfg(
 
     # Wrap the model in a feature extraction module if enabled
     if features:
+        #In default case, we will not go into this branch
         feature_cls = FeatureListNet
         if 'feature_cls' in feature_cfg:
             feature_cls = feature_cfg.pop('feature_cls')
@@ -484,7 +493,7 @@ def build_model_with_cfg(
                     assert False, f'Unknown feature class {feature_cls}'
         model = feature_cls(model, **feature_cfg)
         model.default_cfg = default_cfg_for_features(default_cfg)  # add back default_cfg
-    
+
     return model
 
 

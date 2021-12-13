@@ -73,11 +73,13 @@ def create_model(
         kwargs['external_default_cfg'] = hf_default_cfg  # FIXME revamp default_cfg interface someday
 
     if is_model(model_name):
+        print("--------- factory.py : go into model_entrypoint to get fn for model " + model_name)
         create_fn = model_entrypoint(model_name)
     else:
         raise RuntimeError('Unknown model (%s)' % model_name)
 
     with set_layer_config(scriptable=scriptable, exportable=exportable, no_jit=no_jit):
+        print("--------- factory.py : go into create_fn() and get returned model")
         model = create_fn(pretrained=pretrained, **kwargs)
 
     if checkpoint_path:
